@@ -43,9 +43,10 @@
     export default {
         data() {
             return {
-                useSampleData: true,
+                useSampleData: true, // change to false to fetch data from the API
                 queryUrl: ``, // URL to query latest data only
-                intervalQueryUrl: ``, // URL to query data for latest xx hours
+                intervalQueryUrl: ``, // URL to query data for latest xx hours, should accept one JSON parameter: hours (search 'intervalQueryUrl' in this page to see the code usage)
+                pollingInterval: 3000, // change poll interval
                 pollData: '',
                 payload: {
                     temp: 27,
@@ -74,19 +75,20 @@
                 },
                 pressureDatasets: {
                     datasets: [{
-                        label: "Pressure (PA)",
+                        label: "Pressure (kPA)",
                         data: [],
                         fill: false,
                         borderColor: '#3498DB'
                     }],
                     isLive: true,
                 },
+                numberOfSamplesGenerated: 7,
             }
         },
         methods: {
             generateChartOptions(type) {
                 let units =
-                    {temp: 'Temperature (C)', humidity: 'Humidity (%)', pressure: 'Pressure (PA)'}
+                    {temp: 'Temperature (C)', humidity: 'Humidity (%)', pressure: 'Pressure (kPA)'}
                 ;
                 return {
                     scales: {
@@ -94,15 +96,15 @@
                             type: 'time',
                             time: {
                                 displayFormats: {
-                                    'millisecond': 'MMM DD HH:mm',
-                                    'second': 'MMM DD HH:mm',
-                                    'minute': 'MMM DD HH:mm',
-                                    'hour': 'MMM DD HH:mm',
-                                    'day': 'MMM DD HH:mm',
-                                    'week': 'MMM DD HH:mm',
-                                    'month': 'MMM DD HH:mm',
-                                    'quarter': 'MMM DD HH:mm',
-                                    'year': 'MMM DD HH:mm',
+                                    'millisecond': 'MMM DD HH:mm:ss',
+                                    'second': 'MMM DD HH:mm:ss',
+                                    'minute': 'MMM DD HH:mm:ss',
+                                    'hour': 'MMM DD HH:mm:ss',
+                                    'day': 'MMM DD HH:mm:ss',
+                                    'week': 'MMM DD HH:mm:ss',
+                                    'month': 'MMM DD HH:mm:ss',
+                                    'quarter': 'MMM DD HH:mm:ss',
+                                    'year': 'MMM DD HH:mm:ss',
                                 }
                             },
                             scaleLabel: {
@@ -125,19 +127,27 @@
 
             },
             generateSampleData(){
-                for (let i = 0; i < 4; i ++) {
+                for (let i = this.numberOfSamplesGenerated; i > 0; i--) {
+                    let randomTemp = 27 + Math.random();
                     this.tempDatasets.datasets[0].data.push({
-                        x: this.$moment().add(i, 'h'),
-                        y: Math.random(),
+                        x: this.$moment().add(-i * (this.pollingInterval / 1000), 's'),
+                        y: randomTemp,
                     });
+                    let randomHumidity = 30 + Math.random();
                     this.humidityDatasets.datasets[0].data.push({
-                        x: this.$moment().add(i, 'h'),
-                        y: Math.random(),
+                        x: this.$moment().add(-i * (this.pollingInterval / 1000), 's'),
+                        y: randomHumidity,
                     });
+                    let randomPressure = 100 + Math.random();
                     this.pressureDatasets.datasets[0].data.push({
-                        x: this.$moment().add(i, 'h'),
-                        y: Math.random(),
+                        x: this.$moment().add(-i * (this.pollingInterval / 1000), 's'),
+                        y: randomPressure,
                     });
+                    this.payload = {
+                        temp: randomTemp.toFixed(2),
+                        humidity: randomHumidity.toFixed(2),
+                        pressure: randomPressure.toFixed(2)
+                    }
                 }
             },
             fetchDataFromServerAndUpdate(parameter, hoursBackFromPresent) { // Fetch the data from server
@@ -201,31 +211,6 @@
                 else {
                     this.fetchDataFromServerAndUpdate(parameter, hours);
                 }
-
-                // Hours = 0 means live data
-                /*if (parameter === 'temp') {
-                   this.tempDatasets.isLive = hours == 0 ? true : false;
-                   if (this.tempDatasets.isLive) {
-                       // Clear the data to prepare for new live data
-                       this.tempDatasets = this.clearData(this.tempDatasets);
-                   }
-                   else {
-                       // Fetch the data based on given time
-                       this.fetchDataFromServerAndUpdate('temp', hours);
-                   }
-                }
-                else if (parameter === 'humidity') {
-                    this.humidityDatasets.isLive = hours == 0 ? true : false;
-
-
-                }
-                else if (parameter === 'pressure') {
-                    this.pressureDatasets.isLive = hours == 0 ? true : false;
-
-                }
-                else {
-
-                }*/
             },
             addData(dataset, time, value) {
                 let newDataset = _.clone(dataset);
@@ -243,24 +228,33 @@
         created() {
             if (this.useSampleData) {
                this.generateSampleData();
-                let count = 4;
+                let count = this.numberOfSamplesGenerated;
                 setInterval(() => {
                     // Simulate updated data
 
                     // Temperature
-                    this.tempDatasets = this.addData(this.tempDatasets, this.$moment().add(count, 'h'), Math.random());
+                    let randomTemp = 27 + Math.random();
+                    this.tempDatasets = this.addData(this.tempDatasets, this.$moment(), randomTemp);
 
                     // Humidity
-                    this.humidityDatasets = this.addData(this.humidityDatasets, this.$moment().add(count, 'h'), Math.random());
+                    let randomHumidity = 30 + Math.random();
+                    this.humidityDatasets = this.addData(this.humidityDatasets, this.$moment(), randomHumidity);
 
                     // Pressure
-                    this.pressureDatasets = this.addData(this.pressureDatasets, this.$moment().add(count, 'h'), Math.random());
+                    let randomPressure = 100 + Math.random();
+                    this.pressureDatasets = this.addData(this.pressureDatasets, this.$moment(), randomPressure);
+
+                    this.payload = {
+                        temp: randomTemp.toFixed(2),
+                        humidity: randomHumidity.toFixed(2),
+                        pressure: randomPressure.toFixed(2)
+                    };
 
                     count++;
-                }, 2000)
+                }, this.pollingInterval)
             }
             else {
-                // Poll the data from the server every 3 second
+                // Poll the data from the server every 'pollingInterval' second
                 this.pollData = setInterval(() => {
                     this.$http.get(this.queryUrl)
                         .then(response => {
@@ -286,12 +280,22 @@
                             if (this.pressureDatasets.isLive) {
                                 this.pressureDatasets = this.addData(this.pressureDatasets, msg.data[0].t_stamp, msg.data[0].pressure);
                             }
+
+                            // Set the stats number on top
+                            this.payload = {
+                                temp: msg.data[0].tempC,
+                                humidity: msg.data[0].humidity,
+                                pressure: msg.data[0].pressure
+                            };
                         })
-                }, 3000);
+                }, this.pollingInterval);
             }
         },
         mounted() {
             
+        },
+        beforeDestroy() {
+            clearInterval(this.pollData);
         }
     }
 

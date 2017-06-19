@@ -10,7 +10,7 @@
         </div>
         <div class="col-3">
             <p class="text-left stats-number pressure-stats">{{ payload.pressure }}</p>
-            <p class="text-left stats-title pressure-stats">Preesure (PA)</p>
+            <p class="text-left stats-title pressure-stats">Preesure (kPA)</p>
         </div>
     </div>
 </template>
