@@ -128,20 +128,20 @@
             },
             generateSampleData(){
                 for (let i = this.numberOfSamplesGenerated; i > 0; i--) {
-                    let randomTemp = 27 + Math.random();
+                    let randomTemp = 27 + this.randomBetweenTwoNumbers(-2,2);
                     this.tempDatasets.datasets[0].data.push({
                         x: this.$moment().add(-i * (this.pollingInterval / 1000), 's'),
-                        y: randomTemp,
+                        y: randomTemp.toFixed(2),
                     });
-                    let randomHumidity = 30 + Math.random();
+                    let randomHumidity = 30 + this.randomBetweenTwoNumbers(-2,2);
                     this.humidityDatasets.datasets[0].data.push({
                         x: this.$moment().add(-i * (this.pollingInterval / 1000), 's'),
-                        y: randomHumidity,
+                        y: randomHumidity.toFixed(2),
                     });
-                    let randomPressure = 100 + Math.random();
+                    let randomPressure = 100 + this.randomBetweenTwoNumbers(-2,2);
                     this.pressureDatasets.datasets[0].data.push({
                         x: this.$moment().add(-i * (this.pollingInterval / 1000), 's'),
-                        y: randomPressure,
+                        y: randomPressure.toFixed(2),
                     });
                     this.payload = {
                         temp: randomTemp.toFixed(2),
@@ -207,9 +207,40 @@
                     dataset = this.clearData(dataset);
                 }
 
-                // Otherwise, fetch data from the server
+                // Otherwise, fetch historical data
                 else {
-                    this.fetchDataFromServerAndUpdate(parameter, hours);
+
+                    // Generate sample data
+                    if (this.useSampleData) {
+                        let dataPoints = [];
+                        // Generate historical data (assume 10 minutes interval)
+                        for (let i = hours * 6; i > 0; i--) {
+                            dataPoints.push({
+                                x: this.$moment().add(-i * 10,'m'),
+                                y: this.randomBetweenTwoNumbers(-2,2)
+                            })
+                        }
+                        if (parameter == 'temp') {
+                            dataPoints.forEach(d => d.y += 27);
+                            this.tempDatasets = this.setData(this.tempDatasets, dataPoints);
+                        }
+                        else if (parameter == 'humidity') {
+
+                            dataPoints.forEach(d => d.y += 30);
+                            this.humidityDatasets = this.setData(this.humidityDatasets, dataPoints);
+                        }
+                        else if (parameter == 'pressure') {
+                            dataPoints.forEach(d => d.y += 100);
+                            this.pressureDatasets = this.setData(this.pressureDatasets, dataPoints);
+                        }
+                        else {}
+
+                    }
+
+                    // Fetch data from the server
+                    else {
+                        this.fetchDataFromServerAndUpdate(parameter, hours);
+                    }
                 }
             },
             addData(dataset, time, value) {
@@ -219,7 +250,15 @@
                     y: value
                 });
                 return newDataset;
-            }
+            },
+            setData(dataset, dataPoints) {
+                let newDataset = _.clone(dataset);
+                newDataset.datasets[0].data = dataPoints;
+                return newDataset;
+            },
+            randomBetweenTwoNumbers(min, max) {
+                return Math.floor(Math.random() * (max - min + 1) + min);
+            },
         },
         components: {
             appStats: Stats,
@@ -231,18 +270,24 @@
                 let count = this.numberOfSamplesGenerated;
                 setInterval(() => {
                     // Simulate updated data
+                    let randomTemp = 27 + this.randomBetweenTwoNumbers(-2,2);
+                    let randomHumidity = 30 + this.randomBetweenTwoNumbers(-2,2);
+                    let randomPressure = 100 + this.randomBetweenTwoNumbers(-2,2);
 
                     // Temperature
-                    let randomTemp = 27 + Math.random();
-                    this.tempDatasets = this.addData(this.tempDatasets, this.$moment(), randomTemp);
+                    if (this.tempDatasets.isLive) {
+                        this.tempDatasets = this.addData(this.tempDatasets, this.$moment(), randomTemp.toFixed(2));
+                    }
 
                     // Humidity
-                    let randomHumidity = 30 + Math.random();
-                    this.humidityDatasets = this.addData(this.humidityDatasets, this.$moment(), randomHumidity);
+                    if (this.humidityDatasets.isLive) {
+                        this.humidityDatasets = this.addData(this.humidityDatasets, this.$moment(), randomHumidity.toFixed(2));
+                    }
 
                     // Pressure
-                    let randomPressure = 100 + Math.random();
-                    this.pressureDatasets = this.addData(this.pressureDatasets, this.$moment(), randomPressure);
+                    if (this.pressureDatasets.isLive) {
+                        this.pressureDatasets = this.addData(this.pressureDatasets, this.$moment(), randomPressure.toFixed(2));
+                    }
 
                     this.payload = {
                         temp: randomTemp.toFixed(2),
